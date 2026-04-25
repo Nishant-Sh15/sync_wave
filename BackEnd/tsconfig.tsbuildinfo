@@ -1,1 +1,1 @@
-{"root":["./src/app.ts","./src/connectdb.ts"],"version":"6.0.3"}
+{"root":["./src/app.ts","./src/connectdb.ts","./src/types/sockettype.ts","./src/types/express-session.d.ts","./src/controllers/express-routes/routes.ts","./src/schemas/room.ts","./src/schemas/user.ts","./src/utils/dbservices/room.ts","./src/utils/dbservices/user.ts"],"version":"6.0.3"}

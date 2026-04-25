@@ -1,25 +1,45 @@
+import "dotenv/config";
 import express from "express";
 import http from "http";
 import { WebSocket, WebSocketServer } from "ws";
 import cors from "cors";
 import session from "express-session";
 import MongoStore from "connect-mongo";
+import { CheckRoute, CreateRoomRoute, InfoRoute } from "./controllers/express-routes/routes.js";
 import connectDB from "./connectDB.js";
+// -------------------------------------------
 const app = express();
-app.use(cors());
+// ------connecting to database------
+connectDB()
+    .then(() => {
+    console.log("Database connected successfully");
+})
+    .catch((error) => {
+    console.error("Failed to connect to database:", error);
+});
+// ----------------------------------------
 // Configure express-session
+app.use(cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "user-name", "room-id", "Authorization", "user-id"]
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.set("trust proxy", 1);
 app.use(session({
-    secret: process.env.SESSION_SECRET || "your-secret-key",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-        mongoUrl: process.env.ATLASDB_URL?.replace("<db_password>", process.env.ATLAS_PASSWORD || "") || "mongodb://localhost:27017/sync-wave",
-        touchAfter: 24 * 3600 // lazy session update (in seconds)
+        mongoUrl: process.env.ATLAS_URL
     }),
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // use secure cookies in production
-        maxAge: 1000 * 60 * 60 * 24 // 7 days
+        secure: false,
+        sameSite: "lax", // IMPORTANT
+        maxAge: 1000 * 60 * 60 * 24
     }
 }));
 // ----------------new room id-----------------
@@ -29,20 +49,10 @@ let roomIdCounter = 1;
 const rooms = new Map();
 // ------------------------------------------------
 const server = http.createServer(app);
-app.get("/checks", (req, res) => {
-    console.log("-------------checking ok-----------");
-    const headers = req.headers;
-    console.log(headers);
-    // const roomId =req.headers["room-id"];
-    // const exists=rooms.has(roomId as string);
-    res.send({ exists: false });
-});
-app.get("/create-room", (req, res) => {
-    // console.log("-------------creating room-----------");
-    const roomId = roomIdCounter++;
-    rooms.set(`${roomId}`, new Set());
-    res.send({ roomId: roomId });
-});
+const getNextRoomId = () => roomIdCounter++;
+app.get("/checks", CheckRoute(rooms));
+app.get("/create-room", CreateRoomRoute(rooms, getNextRoomId));
+app.get("/info", InfoRoute());
 // Create WebSocket server on port 8080
 const wss = new WebSocketServer({ server });
 wss.on("connection", (socket) => {

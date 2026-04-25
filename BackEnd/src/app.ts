@@ -1,33 +1,65 @@
+import "dotenv/config";
+
+
 import express from "express";
 import http from "http";
 import  {WebSocket, WebSocketServer } from "ws";
 import cors from "cors";
 import session from "express-session";
 import MongoStore from "connect-mongo";
-import { CheckRoute, CreateRoomRoute } from "./controllers/express-routes/routes.js";
+import { CheckRoute, CreateRoomRoute, InfoRoute } from "./controllers/express-routes/routes.js";
 import connectDB from "./connectDB.js";
 
 
 
 
 
+// ----------types import----------------
+import type { socketType } from "./Types/SocketType.js";
+// -------------------------------------------
+
 const app=express();
-app.use(cors());
+
+
+
+// ------connecting to database------
+connectDB()
+    .then(() => {
+        console.log("Database connected successfully");
+    })
+    .catch((error) => {
+        console.error("Failed to connect to database:", error);
+    });
+// ----------------------------------------
+
 
 // Configure express-session
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "user-name", "room-id", "Authorization","user-id"]
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.set("trust proxy", 1);
+
+// Prepare MongoDB URL with password for MongoStore
+const mongoUrl = process.env.ATLAS_URL?.replace("<db_password>", process.env.ATLAS_PASSWORD || "") || "";
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.ATLASDB_URL?.replace("<db_password>", process.env.ATLAS_PASSWORD || "") || "mongodb://localhost:27017/sync-wave",
-        touchAfter: 24 * 3600 // lazy session update (in seconds)
-    }),
-    cookie: {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // use secure cookies in production
-        maxAge: 1000 * 60 * 60 * 24  // 7 days
-    }
+  secret: process.env.SESSION_SECRET!,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: mongoUrl
+  }),
+  cookie: {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax", // IMPORTANT
+    maxAge: 1000 * 60 * 60 * 24
+  }
 }));
 // ----------------new room id-----------------
 let roomIdCounter :number = 1;
@@ -42,6 +74,7 @@ const server=http.createServer(app);
 const getNextRoomId = () => roomIdCounter++;
 app.get("/checks", CheckRoute(rooms));
 app.get("/create-room", CreateRoomRoute(rooms, getNextRoomId));
+app.get("/info", InfoRoute());
 
 
 
@@ -170,18 +203,9 @@ app.get("/create-room", CreateRoomRoute(rooms, getNextRoomId));
 
 
 
-// ------connecting to database------
-connectDB()
-    .then(() => {
-        console.log("Database connected, starting WebSocket server...");
-    })
-    .catch((error) => {
-        console.error("Failed to connect to database:", error);
-    });
-// ----------------------------------------
 
 
-type socketType = WebSocket & { roomId?: string | null  };
+
 
 // Create WebSocket server on port 8080
 const wss: WebSocketServer = new WebSocketServer({ server });

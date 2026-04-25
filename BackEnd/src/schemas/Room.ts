@@ -30,7 +30,7 @@ const RoomSchema = new Schema<IRoom>(
         },
         currentTrack: {
             type: String,
-            required: true,
+            // required: true,
             default: "",
         },
     },

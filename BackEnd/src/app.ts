@@ -1,31 +1,191 @@
-
+import express from "express";
+import http from "http";
 import  {WebSocket, WebSocketServer } from "ws";
+import cors from "cors";
+import session from "express-session";
+import MongoStore from "connect-mongo";
+import { CheckRoute, CreateRoomRoute } from "./controllers/express-routes/routes.js";
 import connectDB from "./connectDB.js";
 
 
-// ------connecting to database------
-// connectDB()
-//     .then(() => {
-//         console.log("Database connected, starting WebSocket server...");
-//     })
-//     .catch((error) => {
-//         console.error("Failed to connect to database:", error);
-//     });
-// ----------------------------------------
 
 
+
+const app=express();
+app.use(cors());
+
+// Configure express-session
+app.use(session({
+    secret: process.env.SESSION_SECRET || "your-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.ATLASDB_URL?.replace("<db_password>", process.env.ATLAS_PASSWORD || "") || "mongodb://localhost:27017/sync-wave",
+        touchAfter: 24 * 3600 // lazy session update (in seconds)
+    }),
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // use secure cookies in production
+        maxAge: 1000 * 60 * 60 * 24  // 7 days
+    }
+}));
 // ----------------new room id-----------------
 let roomIdCounter :number = 1;
 // ----------------------------------------------
 
+// Store rooms: roomId -> Set of sockets
+const rooms = new Map<string, Set<socketType>>();
+// ------------------------------------------------
 
-type socketType = WebSocket & { roomId?: number | null  };
+const server=http.createServer(app);
+
+const getNextRoomId = () => roomIdCounter++;
+app.get("/checks", CheckRoute(rooms));
+app.get("/create-room", CreateRoomRoute(rooms, getNextRoomId));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ------connecting to database------
+connectDB()
+    .then(() => {
+        console.log("Database connected, starting WebSocket server...");
+    })
+    .catch((error) => {
+        console.error("Failed to connect to database:", error);
+    });
+// ----------------------------------------
+
+
+type socketType = WebSocket & { roomId?: string | null  };
 
 // Create WebSocket server on port 8080
-const wss: WebSocketServer = new WebSocketServer({ port: 8080 });
+const wss: WebSocketServer = new WebSocketServer({ server });
 
-// Store rooms: roomId -> Set of sockets
-const rooms = new Map<number, Set<socketType>>();
 
 wss.on("connection", (socket) => {
     console.log("New client connected");
@@ -41,49 +201,6 @@ wss.on("connection", (socket) => {
         // Handle different message types
         switch (data.type) {
 
-            case "CREATE_ROOM": {
-                const roomId = roomIdCounter++;
-                currentSocket.roomId = roomId;
-
-                // Create new room if it doesn't exist
-                var currentRoom= rooms.get(roomId);
-                if (!currentRoom) {
-                    currentRoom = new Set();
-                    rooms.set(roomId, currentRoom);
-                }
-
-                // Add this socket to the room
-                currentRoom.add(currentSocket);
-
-                currentSocket.send(JSON.stringify({
-                    type: "ROOM_CREATED",
-                    roomId
-                }));
-
-                break;
-            }
-
-            case "JOIN_ROOM": {
-                const roomId = data.roomId;
-                const currentRoom = rooms.get(roomId);
-                if (!currentRoom) {
-                    socket.send(JSON.stringify({
-                        type: "ERROR",
-                        message: "Room does not exist"
-                    }));
-                    return;
-                }
-
-                currentRoom.add(currentSocket);
-                currentSocket.roomId = roomId;
-
-                currentSocket.send(JSON.stringify({
-                    type: "JOINED_ROOM",
-                    roomId
-                }));
-
-                break;
-            }
 
             case "SEND_MESSAGE": {
                 const roomId = currentSocket.roomId;
@@ -140,4 +257,11 @@ wss.on("connection", (socket) => {
             rooms.delete(roomId);
         }
     });
+});
+
+
+
+
+server.listen(8080,()=>{
+    console.log("Server is listening on port 8080");
 });

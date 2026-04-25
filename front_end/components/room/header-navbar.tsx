@@ -2,28 +2,23 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Branding } from './components/components';
 
 interface HeaderNavbarProps {
-  roomName: string;
   roomCode: string;
   userName: string;
 }
 
-export default function HeaderNavbar({ roomName, roomCode, userName }: HeaderNavbarProps) {
+export default function HeaderNavbar({  roomCode, userName }: HeaderNavbarProps) {
   return (
     <header className="h-16 border-b border-border/30 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
       <div className="flex items-center justify-between h-full px-6 gap-4">
         {/* Left Section - Logo/Branding */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <span className="text-sm font-bold text-primary-foreground">♪</span>
-          </div>
-          <span className="font-semibold text-foreground hidden sm:inline">Music Room</span>
-        </div>
+        <Branding/>
 
         {/* Center Section - Room Info */}
         <div className="flex-1 flex flex-col items-center justify-center gap-0">
-          <h2 className="text-sm font-semibold text-foreground text-center">{roomName}</h2>
+          {/* <h2 className="text-sm font-semibold text-foreground text-center">{roomName}</h2> */}
           <p className="text-xs text-muted-foreground">Code: {roomCode}</p>
         </div>
 

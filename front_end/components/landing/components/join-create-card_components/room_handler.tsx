@@ -17,14 +17,25 @@ export default function RoomHandler() {
                 headers: {
                     "room-id": roomCode,
                     "user-name": userName   
-                }
+                },
+                withCredentials: true
             })
                 .then((response) => {
                     if (response.data.exists) {
-                        router.push(`/room/${roomCode}?user=${encodeURIComponent(userName)}`);
+                        // Store userId in localStorage for session persistence
+                        localStorage.setItem('userId', response.data.userId);
+                        console.log(localStorage.getItem('userId'));
+                        
+                        router.push(`/room/${roomCode}`);
                     } else {
                         setError(true);
                     }
+                    console.log(response);
+                    console.log(localStorage);
+                })
+                .catch((error) => {
+                    setError(true);
+                    console.error("Join error:", error);
                 });
         }
     };
@@ -34,14 +45,18 @@ export default function RoomHandler() {
             axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/create-room`,{
                 headers: {
                     "user-name": userName   
-                }
+                },
+                withCredentials: true
             })
                 .then((response) => {
+                    // Store userId in localStorage for session persistence
+                    localStorage.setItem('userId', response.data.userId);
                     const code = response.data.roomId;
-                    router.push(`/room/${code}?user=${encodeURIComponent(userName)}`);
+                    router.push(`/room/${code}`);
                 })
                 .catch((error) => {
                     setError(true);
+                    console.error("Create room error:", error);
                 });
         }
     };

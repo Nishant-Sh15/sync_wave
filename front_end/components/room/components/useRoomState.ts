@@ -1,26 +1,31 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createMockRoom, mockTracks } from '@/lib/mock-data';
+import { mockTracks } from '@/lib/mock-data';
 import type { Room, Track } from '@/lib/types';
 
-export function useRoomState(roomId?: string) {
+export function useRoomState(roomId?: string, authRoom?: Room | null) {
   const [room, setRoom] = useState<Room | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    if (roomId) {
-      const mockRoom = createMockRoom(roomId);
-      setRoom(mockRoom);
+    if (roomId && authRoom) {
+      // Use authenticated room data with playback defaults
+      setRoom({
+        ...authRoom,
+        isPlaying: authRoom.isPlaying || false,
+        currentTime: authRoom.currentTime || 0,
+        volume: authRoom.volume || 70,
+      });
     }
-  }, [roomId]);
+  }, [roomId, authRoom]);
 
   const handleSelectTrack = (selectedTrack: Track) => {
     if (!room) return;
     setRoom({
       ...room,
-      currentTrack: selectedTrack,
+      currentTrack: selectedTrack.id,
       currentTime: 0,
       isPlaying: true,
     });
@@ -53,12 +58,12 @@ export function useRoomState(roomId?: string) {
   const handleNextTrack = () => {
     if (!room) return;
 
-    const currentIndex = mockTracks.findIndex((t) => t.id === room.currentTrack?.id);
+    const currentIndex = mockTracks.findIndex((t) => t.id === room.currentTrack);
     const nextIndex = (currentIndex + 1) % mockTracks.length;
 
     setRoom({
       ...room,
-      currentTrack: mockTracks[nextIndex],
+      currentTrack: mockTracks[nextIndex].id,
       currentTime: 0,
       isPlaying: true,
     });
@@ -67,7 +72,7 @@ export function useRoomState(roomId?: string) {
   const handlePrevTrack = () => {
     if (!room) return;
 
-    if (room.currentTime > 3) {
+    if ((room.currentTime || 0) > 3) {
       setRoom({
         ...room,
         currentTime: 0,
@@ -75,12 +80,12 @@ export function useRoomState(roomId?: string) {
       return;
     }
 
-    const currentIndex = mockTracks.findIndex((t) => t.id === room.currentTrack?.id);
+    const currentIndex = mockTracks.findIndex((t) => t.id === room.currentTrack);
     const prevIndex = currentIndex === 0 ? mockTracks.length - 1 : currentIndex - 1;
 
     setRoom({
       ...room,
-      currentTrack: mockTracks[prevIndex],
+      currentTrack: mockTracks[prevIndex].id,
       currentTime: 0,
       isPlaying: true,
     });

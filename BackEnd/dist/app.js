@@ -28,12 +28,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set("trust proxy", 1);
+// Prepare MongoDB URL with password for MongoStore
+const mongoUrl = process.env.ATLAS_URL?.replace("<db_password>", process.env.ATLAS_PASSWORD || "") || "";
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-        mongoUrl: process.env.ATLAS_URL
+        mongoUrl: mongoUrl
     }),
     cookie: {
         httpOnly: true,

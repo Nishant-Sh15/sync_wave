@@ -7,7 +7,8 @@ import  {WebSocket, WebSocketServer } from "ws";
 import cors from "cors";
 import session from "express-session";
 import MongoStore from "connect-mongo";
-import { CheckRoute, CreateRoomRoute, InfoRoute } from "./controllers/express-routes/routes.js";
+import path from "path";
+import { CheckRoute, CreateRoomRoute, InfoRoute, UploadRoute } from "./controllers/express-routes/routes.js";
 import connectDB from "./connectDB.js";
 
 
@@ -44,6 +45,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set("trust proxy", 1);
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Prepare MongoDB URL with password for MongoStore
 const mongoUrl = process.env.ATLAS_URL?.replace("<db_password>", process.env.ATLAS_PASSWORD || "") || "";
 
@@ -75,6 +79,7 @@ const getNextRoomId = () => roomIdCounter++;
 app.get("/checks", CheckRoute(rooms));
 app.get("/create-room", CreateRoomRoute(rooms, getNextRoomId));
 app.get("/info", InfoRoute());
+app.post("/upload", ...UploadRoute());
 
 
 

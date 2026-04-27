@@ -1,8 +1,12 @@
 import type { Request, Response } from "express";
+import type { Multer } from "multer";
 import { createUser } from "../../utils/DBservices/User.js";
 import { createRoom as createRoomService } from "../../utils/DBservices/Room.js";
 import RoomModel from "../../schemas/Room.js";
 import UserModel from "../../schemas/User.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 export function CheckRoute(rooms: Map<string, Set<unknown>>) {
     return async (req: Request, res: Response) => {
@@ -134,4 +138,64 @@ export function InfoRoute() {
             res.status(500).send({ error: "Failed to fetch user information" });
         }
     };
+}
+export function UploadRoute() {
+  // Configure multer for file uploads
+  const storage = multer.diskStorage({
+    destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
+      const uploadDir = path.join(process.cwd(), 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+  });
+
+  const upload = multer({
+    storage,
+    limits: {
+      fileSize: 50 * 1024 * 1024, // 50MB limit
+    },
+    fileFilter: (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile?: boolean) => void) => {
+      if (file.mimetype.startsWith('audio/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only audio files are allowed'));
+      }
+    }
+  });
+
+  const uploadHandler = async (req: Request, res: Response) => {
+    try {
+      const multerReq = req as Request & { file?: Express.Multer.File };
+      if (!multerReq.file) {
+        res.status(400).send({ error: "No file uploaded" });
+        return;
+      }
+
+      const fileUrl = `/uploads/${multerReq.file.filename}`;
+      const trackId = multerReq.file.filename.split('.')[0]; // Use filename without extension as ID
+
+      // For now, we'll use a default duration. In a real app, you'd extract this from the audio file
+      const duration = 180; // 3 minutes default
+
+      res.send({
+        trackId,
+        fileUrl,
+        duration,
+        fileName: multerReq.file.originalname,
+        message: "File uploaded successfully"
+      });
+
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).send({ error: "Failed to upload file" });
+    }
+  };
+
+  return [upload.single('audioFile'), uploadHandler];
 }

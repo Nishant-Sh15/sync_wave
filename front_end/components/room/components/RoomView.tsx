@@ -8,6 +8,7 @@ import type { Room, Track } from '@/lib/types';
 interface RoomViewProps {
   room: Room;
   userName: string;
+  uploadedTracks: Track[];
   onTogglePlayback: () => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -19,6 +20,7 @@ interface RoomViewProps {
 export default function RoomView({
   room,
   userName,
+  uploadedTracks,
   onTogglePlayback,
   onPrevious,
   onNext,
@@ -26,6 +28,10 @@ export default function RoomView({
   onVolumeChange,
   onSelectTrack,
 }: RoomViewProps) {
+  const currentTrack = room.currentTrack
+    ? uploadedTracks.find((track) => track.id === room.currentTrack)
+    : undefined;
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <HeaderNavbar roomCode={room.roomId} userName={userName} />
@@ -34,10 +40,10 @@ export default function RoomView({
         <MembersSidebar members={room.members} currentUserId={userName} />
 
         <MusicPlayer
-          track={undefined} // TODO: Implement track lookup from currentTrack string
+          track={currentTrack}
           isPlaying={room.isPlaying || false}
           currentTime={room.currentTime || 0}
-          duration={0} // TODO: Implement track duration lookup
+          duration={currentTrack?.duration || 0}
           volume={room.volume || 70}
           onTogglePlayback={onTogglePlayback}
           onPrevious={onPrevious}

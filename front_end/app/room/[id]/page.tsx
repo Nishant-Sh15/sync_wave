@@ -18,6 +18,7 @@ export default function RoomPage() {
   // Use room state for playback controls
   const {
     room,
+    uploadedTracks,
     mounted,
     handleSelectTrack,
     handleTogglePlayback,
@@ -64,6 +65,7 @@ export default function RoomPage() {
     <RoomView
       room={room}
       userName={authData.name || "You"}
+      uploadedTracks={uploadedTracks}
       onTogglePlayback={handleTogglePlayback}
       onPrevious={handlePrevTrack}
       onNext={handleNextTrack}

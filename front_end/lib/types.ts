@@ -25,6 +25,8 @@ export interface Track {
   album: string;
   duration: number;
   albumArt?: string;
+  fileUrl?: string; // URL to the uploaded audio file
+  fileName?: string; // Original filename
 }
 
 export interface RoomContextType {
